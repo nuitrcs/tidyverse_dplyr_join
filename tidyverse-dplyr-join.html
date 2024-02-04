@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>dplyr: join</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="tidyverse-dplyr-join_files/libs/clipboard/clipboard.min.js"></script>
+<script src="tidyverse-dplyr-join_files/libs/quarto-html/quarto.js"></script>
+<script src="tidyverse-dplyr-join_files/libs/quarto-html/popper.min.js"></script>
+<script src="tidyverse-dplyr-join_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="tidyverse-dplyr-join_files/libs/quarto-html/anchor.min.js"></script>
+<link href="tidyverse-dplyr-join_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="tidyverse-dplyr-join_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="tidyverse-dplyr-join_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="tidyverse-dplyr-join_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="tidyverse-dplyr-join_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">dplyr: join</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p><em>The output of most of the R chunks isn’t included in the HTML version of the file to keep it to a more reasonable file size. You can run the code in R to see the output.</em></p>
+<section id="setup" class="level1">
+<h1>Setup</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We know dplyr functions for working with a single data frame. dplyr also has functions for joining two data frames together.</p>
+</section>
+<section id="data" class="level1">
+<h1>Data</h1>
+<p>We’re going to use COVID-19 data by county and demographics by county for joining:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># county level data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>demo <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/county_demographics.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>cases <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/county_cases.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>deaths <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/county_deaths.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># state level data</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>state_stats <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/state_covid.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>I’ve introduced some missing data for the purposes of this workshop. Get the full COVID-19 case data from <a href="https://usafacts.org/visualizations/coronavirus-covid-19-spread-map/" class="uri">https://usafacts.org/visualizations/coronavirus-covid-19-spread-map/</a>. COVID-19 case and death data included here is as of early July 2020. Demographic variables are census estimates for July 2019.<br>
+To learn more about COVID-19 and race, see <a href="https://covidtracking.com/race" class="uri">https://covidtracking.com/race</a>; this is the source of the state-level COVID-19 statistics used here.</p>
+<p>What’s in the data sets:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>demo</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>cases</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>deaths</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>state_stats</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="adding-rows-and-columns" class="level1">
+<h1>Adding Rows and Columns</h1>
+<p>Before we get to joins, let’s first cover adding rows or columns to a data frame.</p>
+<p>dplyr includes <code>bind_rows</code> and <code>bind_cols</code>, which are roughly equivalent to base R <code>rbind</code> and <code>cbind</code>, but they are a bit easier to work with.</p>
+<p>To demonstrate, let’s create some subsets of the data to work with first:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>delaware <span class="ot">&lt;-</span> <span class="fu">filter</span>(demo, state<span class="sc">==</span><span class="st">"Delaware"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>hawaii <span class="ot">&lt;-</span> <span class="fu">filter</span>(demo, state<span class="sc">==</span><span class="st">"Hawaii"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,<span class="dv">7</span><span class="sc">:</span><span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>delaware</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hawaii</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We have some overlap in the column names, but the set of columns doesn’t match exactly. To combine these datasets, we want to bind the rows (each is a county) together:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># just printing, not saving...</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(delaware, hawaii)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 9
+  state    county             fips  total  white  black native  asian    two
+  &lt;chr&gt;    &lt;chr&gt;             &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+1 Delaware Kent County       10001 180786 118674  49379     NA     NA     NA
+2 Delaware New Castle County 10003 558753 361012 147636     NA     NA     NA
+3 Delaware Sussex County     10005 234225 194389  28529     NA     NA     NA
+4 Hawaii   Hawaii County     15001 201513     NA     NA  27015  42786  61404
+5 Hawaii   Honolulu County   15003 974563     NA     NA  96454 418435 221842
+6 Hawaii   Kalawao County    15005     86     NA     NA     42      7     13
+7 Hawaii   Kauai County      15007  72293     NA     NA   6947  22402  18573
+8 Hawaii   Maui County       15009 167417     NA     NA  18661  48560  40456</code></pre>
+</div>
+</div>
+<p><code>bind_rows</code> includes all columns the exist in either dataset and fills in missing values with NA. It matches columns by full name. If we tried this with <code>rbind</code>, we’d get an error, because the set of columns doesn’t match.</p>
+<p><strong>When would you really do this?</strong></p>
+<p>Maybe you have separate data files for each year of data, and you need to combine them. Or for each school, or state, or experiment iteration. Any case where the set of variables is similar across multiple data sets that all have the same unit of observation (rows are the same type of thing across data sets and you have similar variables).</p>
+<p>For adding columns, we’d need to make sure that both data frames have the same number of rows and they appear in the same order. Generally, you don’t want to <code>bind_cols</code>. If you have some column that identifies observations in each data frame, you’ll want to join the datasets together instead, which is what we’re going to do next. If you are just trying to add a few columns of data, use <code>mutate</code>. While it does happen, it’s dangerous to have multiple data sets with the same set of rows without some ID variable – where they’re just matched by the order of the rows; it’s too easy for the matching between datasets to get messed up.</p>
+</section>
+<section id="joins" class="level1">
+<h1>Joins</h1>
+<p>The terminology for joining comes from SQL, which is used to interact with databases. And dplyr can work directly with SQL databases, translating dplyr commands into SQL, running them in the database, and then retrieving the results. That’s for a separate workshop, but if you do want to work with a database, know that you do not necessarily have to export the data in order to work with it in R. And you can write dplyr commands instead of SQL commands to work with the data.</p>
+<p><strong>Note</strong>: the equivalent function for joining in base R is <code>merge()</code>.</p>
+<section id="background-keys" class="level2">
+<h2 class="anchored" data-anchor-id="background-keys">Background: Keys</h2>
+<p>Joins work when you have two data frames (called tables in databases, but same idea), and you want to merge them together. Each data set needs to have some type of identifier, a key, that tells you how a row in dataset 1 should be matched into dataset 2.</p>
+<p>For example, here, we have three county datasets, all of which have different data (different variables). In our case, each dataset includes an ID variable for each county. These IDs are the same across datasets because all 3 use the FIPS code from the US Census. So even though our datasets have different numbers of rows:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "countyFIPS" "county"     "state"      "stateFIPS"  "cases"     </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(deaths)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "countyFIPS" "county"     "state"      "stateFIPS"  "deaths"    </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(demo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "state"          "county"         "fips"           "total"         
+ [5] "white"          "black"          "native"         "asian"         
+ [9] "two"            "non_white"      "white_prop"     "black_prop"    
+[13] "native_prop"    "asian_prop"     "two_prop"       "non_white_prop"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2830</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(deaths)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 3145</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(demo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 3142</code></pre>
+</div>
+</div>
+<p>We have a key that will link rows in the different datasets together.</p>
+<p>For example, look at a county that is in all three data sets:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(demo, fips <span class="sc">==</span> <span class="dv">1009</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 16
+  state   county  fips total white black native asian   two non_white white_prop
+  &lt;chr&gt;   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+1 Alabama Bloun…  1009 57826 55412   978    437   185   814      2414      0.958
+# ℹ 5 more variables: black_prop &lt;dbl&gt;, native_prop &lt;dbl&gt;, asian_prop &lt;dbl&gt;,
+#   two_prop &lt;dbl&gt;, non_white_prop &lt;dbl&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(cases, countyFIPS <span class="sc">==</span> <span class="dv">1009</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 5
+  countyFIPS county        state stateFIPS cases
+       &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;
+1       1009 Blount County AL            1   255</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(deaths, countyFIPS <span class="sc">==</span> <span class="dv">1009</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 5
+  countyFIPS county        state stateFIPS deaths
+       &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt;
+1       1009 Blount County AL            1      1</code></pre>
+</div>
+</div>
+<p>We want to combine the different variables from all 3 data frames together into a single one. We can’t just bind the columns together though, because the set of counties in each data set is different (some counties are missing from some datasets).</p>
+<p>Example (we’ll talk through the code shortly):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>cases <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(deaths, <span class="at">by=</span><span class="st">"countyFIPS"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2,830 × 9
+   countyFIPS county.x    state.x stateFIPS.x cases county.y state.y stateFIPS.y
+        &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;         &lt;dbl&gt;
+ 1          1 New York C… NY               36     0 New Yor… NY               36
+ 2       1001 Autauga Co… AL                1   644 Autauga… AL                1
+ 3       1005 Barbour Co… AL                1   360 Barbour… AL                1
+ 4       1007 Bibb County AL                1   199 Bibb Co… AL                1
+ 5       1009 Blount Cou… AL                1   255 Blount … AL                1
+ 6       1011 Bullock Co… AL                1   373 Bullock… AL                1
+ 7       1013 Butler Cou… AL                1   634 Butler … AL                1
+ 8       1015 Calhoun Co… AL                1   395 Calhoun… AL                1
+ 9       1017 Chambers C… AL                1   656 Chamber… AL                1
+10       1019 Cherokee C… AL                1   106 Cheroke… AL                1
+# ℹ 2,820 more rows
+# ℹ 1 more variable: deaths &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>We also have a data set with state level data on COVID deaths. We might want to add this state level info to each county. In that case, you could use the state name to pull the correct state data from the data set for each row in the county data set.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># We'll talk through the code more below</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>cases <span class="sc">%&gt;%</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(state_stats, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"state"</span><span class="ot">=</span><span class="st">"State"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2,830 × 32
+   countyFIPS county        state stateFIPS cases   Date Cases_Total Cases_White
+        &lt;dbl&gt; &lt;chr&gt;         &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;
+ 1          1 New York Cit… NY           36     0 2.02e7      397131          NA
+ 2       1001 Autauga Coun… AL            1   644 2.02e7       43953       14864
+ 3       1005 Barbour Coun… AL            1   360 2.02e7       43953       14864
+ 4       1007 Bibb County   AL            1   199 2.02e7       43953       14864
+ 5       1009 Blount County AL            1   255 2.02e7       43953       14864
+ 6       1011 Bullock Coun… AL            1   373 2.02e7       43953       14864
+ 7       1013 Butler County AL            1   634 2.02e7       43953       14864
+ 8       1015 Calhoun Coun… AL            1   395 2.02e7       43953       14864
+ 9       1017 Chambers Cou… AL            1   656 2.02e7       43953       14864
+10       1019 Cherokee Cou… AL            1   106 2.02e7       43953       14864
+# ℹ 2,820 more rows
+# ℹ 24 more variables: Cases_Black &lt;dbl&gt;, Cases_LatinX &lt;dbl&gt;,
+#   Cases_Asian &lt;dbl&gt;, Cases_AIAN &lt;dbl&gt;, Cases_NHPI &lt;dbl&gt;,
+#   Cases_Multiracial &lt;dbl&gt;, Cases_Other &lt;dbl&gt;, Cases_Unknown &lt;dbl&gt;,
+#   Cases_Ethnicity_Hispanic &lt;dbl&gt;, Cases_Ethnicity_NonHispanic &lt;dbl&gt;,
+#   Cases_Ethnicity_Unknown &lt;dbl&gt;, Deaths_Total &lt;dbl&gt;, Deaths_White &lt;dbl&gt;,
+#   Deaths_Black &lt;dbl&gt;, Deaths_LatinX &lt;dbl&gt;, Deaths_Asian &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p>In this second example, each state in the state data set matches to multiple rows (multiple counties) in the county data set – this is OK and expected. You can have 1:1, 1:many, or many:many matches across data sets (although this last one can get messy! so much so, that dplyr will warn you when it happens).</p>
+<p>There can also be cases where the combination of two different variables is the “key” – where both columns need to match for the data sets to be joined correctly.</p>
+<p>There is also a more complicated case where you don’t have clean “key” variables but you still want to join two datasets. This requires fuzzy or approximate matching using variables in the two data sets, which is beyond the scope of what we can cover today. A case where this might happen is when you have country names (not ISO codes), and variants such as DRC vs.&nbsp;Democratic Republic of the Congo vs.&nbsp;Congo, DR (yes, this happens regularly).</p>
+<p>Today, we’re assuming there is some clean key to match on where values match exactly.</p>
+<section id="exercise-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-1">EXERCISE 1</h3>
+<p>Import data about degrees awarded at Northwestern. What column(s) can be used as a key to join the datasets together?</p>
+<p>Note: this isn’t a code answer - read in the data and take a look at the data frames to see what’s common in them.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>bac <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/bac_schools.csv"</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>masters <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/masters_schools.csv"</span>)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>doc <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/nuitrcs/R-intermediate-tidyverse-2023/main/data/doc_schools.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="background-join-types" class="level2">
+<h2 class="anchored" data-anchor-id="background-join-types">Background: Join Types</h2>
+<p>There are different ways to match up rows in two datasets. They vary based on what happens to rows that don’t match to the other data set (where the key from one data set isn’t present in the other).</p>
+<p><a href="https://tavareshugo.github.io/r-intro-tidyverse-gapminder/fig/07-dplyr_joins.svg" class="uri">https://tavareshugo.github.io/r-intro-tidyverse-gapminder/fig/07-dplyr_joins.svg</a></p>
+<p>An inner join only includes in the result rows that matched in both datasets.</p>
+<p>A left join includes all rows from the first (left) data set, filling in missing values where there isn’t a match in the second data set (right).</p>
+<p>A right join does the opposite: keeps all rows from the second (right) data set, and fills in missing values where there isn’t a match in the fist.</p>
+<p>An outer join keeps all rows from both data sets, filling in missing values where there aren’t matches.</p>
+<p>An anti-join helps you find rows in a dataset that do NOT match to another.</p>
+</section>
+<section id="joins-with-dplyr" class="level2">
+<h2 class="anchored" data-anchor-id="joins-with-dplyr">Joins with dplyr</h2>
+<p>Each of the join types is a different function in dplyr: <code>inner_join()</code>, <code>left_join()</code>, <code>right_join()</code>, <code>full_join()</code> (the last one is an outer join). You use them all in the same way.</p>
+<p>Let’s start with the first example above. I’m going to re-write it in a single line:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(cases, deaths, <span class="at">by=</span><span class="st">"countyFIPS"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The first input, cases, is the “left” table. The second, deaths, is the “right.” The <code>by="countyFIPS"</code> is telling it what key to use to join – in this case, there’s a column named “countyFIPS” in both data frames that should be used to match up rows.</p>
+<p>In the output, it adds the suffix “.x” to any columns from the first data set where there’s a column of the same name in the second data set, and uses the suffix “.y” for the reverse. “countyFIPS” doesn’t get a suffix because it’s the variable we told it to join on. “cases” and “deaths” don’t get a suffix because there isn’t a column with those names in the other data set.</p>
+<p>Note above and also below, I’m just joining and printing the resulting data frame. You could save the output (the resulting data frame) in a new variable though:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>cases_deaths <span class="ot">&lt;-</span> <span class="fu">left_join</span>(cases, deaths, <span class="at">by=</span><span class="st">"countyFIPS"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="variations-on-by" class="level3">
+<h3 class="anchored" data-anchor-id="variations-on-by">Variations on by</h3>
+<p>If I don’t tell dplyr what the key variables are to use to join the tables, it will default to trying to join on any columns with the same name across data frames:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(cases, deaths)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And tell me what it joined by in the output.</p>
+<p>But it’s best to be explicit about how you want to join the tables. Just because two columns have the same name, doesn’t mean all of the data is the same! In the case of the <code>cases</code> and <code>deaths</code> data frames, they come from the same source. So all of these columns <em>SHOULD</em> match, but they don’t!</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(cases, deaths,</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">by=</span><span class="st">"countyFIPS"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(county.x <span class="sc">!=</span> county.y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>If we matched by countyFIPS and county, we’d miss these matches.</p>
+<p>Something to always watch out for! It’s usually best to join using the minimal set of columns needed to identify the correct matches.</p>
+<p>With the <code>cases</code> and <code>deaths</code> data frames, they came from the same data source, so the key column has the same name in both data sets. In the <code>demo</code> data frame, the name of the column with the county FIPS code is different though:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(demo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>To join with that, we use a named vector with <code>by</code>, with the form <code>c("Name in first data set"="Name in second data set")</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(cases, demo, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span><span class="ot">=</span><span class="st">"fips"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here, where the column names are different, it just keeps one copy of the joining key column, and uses the column name from the first (left) data set.</p>
+<p>We can also join on multiple columns, where each pair of columns we specify needs to match. For example, in the cases and deaths data, there are some of the same columns. We can require multiple columns to match by supplying a vector of names:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(cases, deaths, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span>, <span class="st">"state"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This gives us a cleaner result without duplicate rows. But make sure that the values in these columns really should all match – if not, you’ll be missing matches.</p>
+</section>
+<section id="exercise-2" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-2">EXERCISE 2</h3>
+<p>Join (<code>left_join</code> is fine) the <code>cases</code> data frame to the <code>state_stats</code> data frame using the state column in each (“state” in <code>cases</code> and “State” in <code>state_stats</code>); case of the variable name matters! (“state” is not equal to “State” as column names).</p>
+</section>
+<section id="exercise-3" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-3">EXERCISE 3</h3>
+<p>Join the bac, masters, and doc data frames imported above into a single data frame.</p>
+<p>You can string together multiple join commands with %&gt;%</p>
+</section>
+</section>
+<section id="unmatched-rows" class="level2">
+<h2 class="anchored" data-anchor-id="unmatched-rows">Unmatched Rows</h2>
+<p>A left join keeps all of the rows in the first data set, whether or not they match a row in the second. How do we find rows that didn’t match?</p>
+<p>You can use <code>anti_join()</code> to find rows in one (the first) data frame that don’t match to a row in the second:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anti_join</span>(deaths, cases, </span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This only returns the rows that don’t match.</p>
+<p>Note that we don’t get any columns from the <code>cases</code> data frame because these are the rows from <code>deaths</code> that don’t match to cases. To see what rows in <code>cases</code> don’t match, switch the order:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anti_join</span>(cases, deaths, </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>They all match! But remember, there are still rows in deaths that aren’t represented in the result.</p>
+<p>If, instead of seeing the non-matching rows separately, you want to see which ones didn’t match in the context of the joined data frame, you can look for missing values in the joined columns.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(deaths, cases, </span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(cases))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Beware though, because if there are legitimately missing values in the column you check (here, cases), then you’ll get mixed results here.</p>
+<section id="exercise-4" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-4">EXERCISE 4</h3>
+<p>Find the rows in <code>deaths</code> that don’t have a match in <code>demo</code> Hint: join with <code>deaths</code> (column “countyFIPS”) and <code>demo</code> (column “fips”).</p>
+</section>
+</section>
+<section id="beware-missing-values" class="level2">
+<h2 class="anchored" data-anchor-id="beware-missing-values">Beware Missing Values</h2>
+<p>Missing values: by default, dplyr matches missing (<code>NA</code>) as if it is a value. So if we have two data frames, and there are missing values in our key id variables, then they will match, even if there are multiple <code>NA</code>s.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>a <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">id=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="cn">NA</span>), <span class="at">val=</span><span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>))</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">id=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="cn">NA</span>, <span class="cn">NA</span>), <span class="at">val2 =</span> <span class="fu">c</span>(<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span>, <span class="st">"d"</span>))</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>a</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>b</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(a, b, <span class="at">by=</span><span class="st">"id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>If we want this to not happen, we can set the <code>na_matches</code> argument to “never”</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(a, b, <span class="at">by=</span><span class="st">"id"</span>, </span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">na_matches=</span><span class="st">"never"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Sometime, R will warn you that there there might be a problem.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>c <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">id=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="cn">NA</span>, <span class="cn">NA</span>), <span class="at">val3 =</span> <span class="fu">c</span>(<span class="st">"w"</span>, <span class="st">"x"</span>, <span class="st">"y"</span>, <span class="st">"z"</span>))</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>c</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="fu">left_join</span>(b, c, <span class="at">by=</span><span class="st">"id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This isn’t actually related to missing values, but it’s one of the times when this is most likely to happen by mistake. What it means is that there’s more than one row in the first data set that matches to the same row in the second data set AND there are rows in the first data set that each match to multiple rows in the second data set.</p>
+<p>This can be legitimate, but it’s something you’d always want to check to confirm that the behavior is correct.</p>
+</section>
+<section id="cleanup" class="level2">
+<h2 class="anchored" data-anchor-id="cleanup">Cleanup</h2>
+<p>So you’ve joined two data sets, and now you have a bunch of columns with “.x” and “.y” (or other types of repeats). What do you do?</p>
+<p>Option 1: select only the columns you really want in the result ahead of doing the join. NOTE: this is one of the very few times I might nest dplyr function calls</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>cases <span class="sc">%&gt;%</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(countyFIPS, county, state, cases) <span class="sc">%&gt;%</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">select</span>(demo, fips, total, white, black),</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span><span class="ot">=</span><span class="st">"fips"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Why nest the <code>select</code> call instead of saving a subset of the data first, and using that? Mostly for situations where the datasets are large, and I don’t want extra copies of the data frame in my environment. In this case, the data sets are small enough that I could do this instead:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>demo_sub <span class="ot">&lt;-</span> <span class="fu">select</span>(demo, fips, total, white, black)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>cases <span class="sc">%&gt;%</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(countyFIPS, county, state, cases) <span class="sc">%&gt;%</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(demo_sub,</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span><span class="ot">=</span><span class="st">"fips"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>But I have <code>demo_sub</code> hanging around in my environment then (I like to keep my environment clean when possible!).</p>
+<p>Option 2: use <code>rename()</code> or <code>select()</code> on the result of the join:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>cases <span class="sc">%&gt;%</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(demo,</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by=</span><span class="fu">c</span>(<span class="st">"countyFIPS"</span><span class="ot">=</span><span class="st">"fips"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(countyFIPS, <span class="at">county=</span>county.x, <span class="at">state=</span>state.x, </span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>         cases, total, white, black)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="exercise-5" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-5">EXERCISE 5</h3>
+<p>Create a data frame with only the following columns: countyFIPS, state, deaths, non_white population</p>
+<p>Hint: use the <code>demo</code> and <code>deaths</code> data frames.</p>
+</section>
+</section>
+</section>
+<section id="learning-more" class="level1">
+<h1>Learning More</h1>
+<p>See the Relational Data chapter in the book R for Data Science: <a href="https://r4ds.had.co.nz/relational-data.html" class="uri">https://r4ds.had.co.nz/relational-data.html</a></p>
+</section>
+<section id="recap" class="level1">
+<h1>Recap</h1>
+<p>You now can use different dplyr join commands, such as <code>inner_join</code>, <code>outer_join</code>, <code>left_join</code>, <code>right_join</code>, <code>anti_join</code>, to join together your data in a wide variety of ways.</p>
+<p>Next session: the tidyr functions for reshaping your data to follow the tidy format: <code>pivot_longer</code>, <code>pivot_wider</code>, <code>separate</code> and <code>separate_rows</code></p>
+</section>
+<section id="answers-to-the-exercises" class="level1">
+<h1>Answers to the exercises</h1>
+<section id="exercise-1-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-1-1">EXERCISE 1</h3>
+</section>
+<section id="exercise-2-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-2-1">EXERCISE 2</h3>
+</section>
+<section id="exercise-3-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-3-1">EXERCISE 3</h3>
+</section>
+<section id="exercise-4-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-4-1">EXERCISE 4</h3>
+</section>
+<section id="exercise-5-1" class="level3">
+<h3 class="anchored" data-anchor-id="exercise-5-1">EXERCISE 5</h3>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

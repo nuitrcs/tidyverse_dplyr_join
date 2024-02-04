@@ -7,7 +7,7 @@ output:
     toc: true
     toc_depth: 1
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r, setup, include=FALSE}
@@ -392,31 +392,31 @@ Next session: the tidyr functions for reshaping your data to follow the tidy for
 
 # Answers to the exercises
 
-### Exercise 1
+### EXERCISE 1
 
 ```{r}
 
 ```
 
-### Exercise 2
+### EXERCISE 2
 
 ```{r}
 
 ```
 
-### Exercise 3
+### EXERCISE 3
 
 ```{r}
 
 ```
 
-### Exercise 4
+### EXERCISE 4
 
 ```{r}
 
 ```
 
-### Exercise 5
+### EXERCISE 5
 
 ```{r}
 
