@@ -5,7 +5,7 @@ output:
     df_print: paged
     code_download: TRUE
     toc: true
-    toc_depth: 1
+    toc_depth: 2
 editor_options:
   chunk_output_type: inline
 ---
