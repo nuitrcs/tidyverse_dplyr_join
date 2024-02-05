@@ -90,7 +90,7 @@ Maybe you have separate data files for each year of data, and you need to combin
 
 For **adding columns**, we'd need to make sure that **both data frames have the same number of rows** and they appear in the same order. Generally, you don't want to `bind_cols`. If you have some column that identifies observations in each data frame, you'll want to join the datasets together instead, which is what we're going to do next. If you are just trying to add a few columns of data, use `mutate`.
 
-**Why use join instead of bind_cols?**
+**Why use join instead of `bind_cols`?**
 
 While it does happen, it's dangerous to have multiple data sets with the same set of rows without some ID variable -- where they're just matched by the order of the rows; it's too easy for the matching between datasets to get messed up.
 
@@ -397,7 +397,7 @@ See the Relational Data chapter in the book R for Data Science: <https://r4ds.ha
 
 # Recap
 
-You now can use different dplyr join commands, such as `inner_join`, `outer_join`, `left_join`, `right_join`, `anti_join`, to join together your data in a wide variety of ways.
+You now can use different `{dplyr}` join commands, such as `inner_join`, `outer_join`, `left_join`, `right_join`, `anti_join`, to join together your data in a wide variety of ways.
 
 Next session: the `{tidyr}` functions for reshaping your data to follow the tidy format: `pivot_longer`, `pivot_wider`, `separate` and `separate_rows`
 
