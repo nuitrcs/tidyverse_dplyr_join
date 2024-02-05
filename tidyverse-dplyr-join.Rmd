@@ -7,7 +7,7 @@ output:
     toc: true
     toc_depth: 2
 editor_options:
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r, setup, include=FALSE}
@@ -23,7 +23,7 @@ library(dplyr)
 library(readr)
 ```
 
-We know dplyr functions for working with a single data frame. dplyr also has functions for joining two data frames together.
+We know `{dplyr}` functions for working with a single data frame. `{dplyr}` also has functions for joining two data frames together.
 
 # Data
 
@@ -47,17 +47,19 @@ To learn more about COVID-19 and race, see <https://covidtracking.com/race>; thi
 What's in the data sets:
 
 ```{r}
-demo
-cases
-deaths
-state_stats
+demo           # demographics by county
+cases          # covid case counts by county
+deaths         # covid death counts by county
+state_stats.   # covid case and death counts by state and demographics
 ```
+
+County FIPS Codes are unique 5-digit codes that represent specific US counties. The first two digits represent the county's state and the last three digits represent the county. For example "17031" is the FIPS Code for Cook County, Illinois.
 
 # Adding Rows and Columns
 
 Before we get to joins, let's first cover adding rows or columns to a data frame.
 
-dplyr includes `bind_rows` and `bind_cols`, which are roughly equivalent to base R `rbind` and `cbind`, but they are a bit easier to work with.
+`{dplyr}` includes `bind_rows` and `bind_cols`, which are roughly equivalent to base R `rbind` and `cbind`, but they are a bit easier to work with.
 
 To demonstrate, let's create some subsets of the data to work with first:
 
@@ -80,17 +82,21 @@ We have some overlap in the column names, but the set of columns doesn't match e
 bind_rows(delaware, hawaii)
 ```
 
-`bind_rows` includes all columns the exist in either dataset and fills in missing values with NA. It matches columns by full name. If we tried this with `rbind`, we'd get an error, because the set of columns doesn't match.
+`bind_rows` includes all columns the exist in either dataset and fills in missing values with `NA`. It matches columns by full name. If we tried this with `rbind`, we'd get an error, because the set of columns doesn't match.
 
 **When would you really do this?**
 
-Maybe you have separate data files for each year of data, and you need to combine them. Or for each school, or state, or experiment iteration. Any case where the set of variables is similar across multiple data sets that all have the same unit of observation (rows are the same type of thing across data sets and you have similar variables).
+Maybe you have separate data files for each year of data, and you need to combine them. Or for each school, or state, or experiment iteration. Any case where the set of **variables** is **similar across multiple data sets** that all have the same unit of observation (rows are the same type of thing across data sets and you have similar variables).
 
-For adding columns, we'd need to make sure that both data frames have the same number of rows and they appear in the same order. Generally, you don't want to `bind_cols`. If you have some column that identifies observations in each data frame, you'll want to join the datasets together instead, which is what we're going to do next. If you are just trying to add a few columns of data, use `mutate`. While it does happen, it's dangerous to have multiple data sets with the same set of rows without some ID variable -- where they're just matched by the order of the rows; it's too easy for the matching between datasets to get messed up.
+For **adding columns**, we'd need to make sure that **both data frames have the same number of rows** and they appear in the same order. Generally, you don't want to `bind_cols`. If you have some column that identifies observations in each data frame, you'll want to join the datasets together instead, which is what we're going to do next. If you are just trying to add a few columns of data, use `mutate`.
+
+**Why use join instead of bind_cols?**
+
+While it does happen, it's dangerous to have multiple data sets with the same set of rows without some ID variable -- where they're just matched by the order of the rows; it's too easy for the matching between datasets to get messed up.
 
 # Joins
 
-The terminology for joining comes from SQL, which is used to interact with databases. And dplyr can work directly with SQL databases, translating dplyr commands into SQL, running them in the database, and then retrieving the results. That's for a separate workshop, but if you do want to work with a database, know that you do not necessarily have to export the data in order to work with it in R. And you can write dplyr commands instead of SQL commands to work with the data.
+The terminology for joining comes from SQL, which is used to interact with databases. And `{dplyr}` can work directly with SQL databases, translating `{dplyr}` commands into SQL, running them in the database, and then retrieving the results. That's for a separate workshop, but if you do want to work with a database, know that you do not necessarily have to export the data in order to work with it in R. And you can write `{dplyr}` commands instead of SQL commands to work with the data.
 
 **Note**: the equivalent function for joining in base R is `merge()`.
 
@@ -137,7 +143,7 @@ cases %>%
   left_join(state_stats, by=c("state"="State"))
 ```
 
-In this second example, each state in the state data set matches to multiple rows (multiple counties) in the county data set -- this is OK and expected. You can have 1:1, 1:many, or many:many matches across data sets (although this last one can get messy! so much so, that dplyr will warn you when it happens).
+In this second example, each state in the state data set matches to multiple rows (multiple counties) in the county data set -- this is OK and expected. You can have 1:1, 1:many, or many:many matches across data sets (although this last one can get messy! so much so, that `{dplyr}` will warn you when it happens).
 
 There can also be cases where the combination of two different variables is the "key" -- where both columns need to match for the data sets to be joined correctly.
 
@@ -165,19 +171,23 @@ There are different ways to match up rows in two datasets. They vary based on wh
 
 <https://tavareshugo.github.io/r-intro-tidyverse-gapminder/fig/07-dplyr_joins.svg>
 
-An inner join only includes in the result rows that matched in both datasets.
+An **inner** join only includes in the result rows that matched in both datasets.
 
-A left join includes all rows from the first (left) data set, filling in missing values where there isn't a match in the second data set (right).
+A **left** join includes all rows from the first (left) data set, filling in missing values where there isn't a match in the second data set (right).
 
-A right join does the opposite: keeps all rows from the second (right) data set, and fills in missing values where there isn't a match in the fist.
+A **right** join does the opposite: keeps all rows from the second (right) data set, and fills in missing values where there isn't a match in the fist.
 
-An outer join keeps all rows from both data sets, filling in missing values where there aren't matches.
+An **outer** join keeps all rows from both data sets, filling in missing values where there aren't matches.
 
-An anti-join helps you find rows in a dataset that do NOT match to another.
+An **anti**-join helps you find rows in a dataset that do NOT match to another.
 
-## Joins with dplyr
+![](images/join_types.png)
 
-Each of the join types is a different function in dplyr: `inner_join()`, `left_join()`, `right_join()`, `full_join()` (the last one is an outer join). You use them all in the same way.
+Image Source: <https://cghlewis.com/blog/joins/>
+
+## Joins with `{dplyr}`
+
+Each of the join types is a different function in `{dplyr}`: `inner_join()`, `left_join()`, `right_join()`, `full_join()` (the last one is an outer join). You use them all in the same way.
 
 Let's start with the first example above. I'm going to re-write it in a single line:
 
@@ -197,7 +207,7 @@ cases_deaths <- left_join(cases, deaths, by="countyFIPS")
 
 ### Variations on by
 
-If I don't tell dplyr what the key variables are to use to join the tables, it will default to trying to join on any columns with the same name across data frames:
+If I don't tell `{dplyr}` what the key variables are to use to join the tables, it will default to trying to join on any columns with the same name across data frames:
 
 ```{r}
 left_join(cases, deaths)
@@ -210,7 +220,8 @@ But it's best to be explicit about how you want to join the tables. Just because
 ```{r}
 left_join(cases, deaths,
           by="countyFIPS") %>%
-  filter(county.x != county.y)
+  filter(county.x != county.y)  
+# use select(county.x, county.y) to see differences
 ```
 
 If we matched by countyFIPS and county, we'd miss these matches.
@@ -301,7 +312,7 @@ Find the rows in `deaths` that don't have a match in `demo` Hint: join with `dea
 
 ## Beware Missing Values
 
-Missing values: by default, dplyr matches missing (`NA`) as if it is a value. So if we have two data frames, and there are missing values in our key id variables, then they will match, even if there are multiple `NA`s.
+Missing values: by default, `{dplyr}` matches missing (`NA`) as if it is a value. So if we have two data frames, and there are missing values in our key id variables, then they will match, even if there are multiple `NA`s.
 
 ```{r}
 a <- tibble(id=c(1, 2, NA), val=c(10, 20, 30))
@@ -321,7 +332,7 @@ left_join(a, b, by="id",
           na_matches="never")
 ```
 
-Sometime, R will warn you that there there might be a problem.
+Sometimes, R will warn you that there there might be a problem.
 
 ```{r}
 c <- tibble(id=c(2, 3, NA, NA), val3 = c("w", "x", "y", "z"))
@@ -338,7 +349,7 @@ This can be legitimate, but it's something you'd always want to check to confirm
 
 So you've joined two data sets, and now you have a bunch of columns with ".x" and ".y" (or other types of repeats). What do you do?
 
-Option 1: select only the columns you really want in the result ahead of doing the join. NOTE: this is one of the very few times I might nest dplyr function calls
+**Option 1**: select only the columns you really want in the result ahead of doing the join. NOTE: this is one of the very few times I might nest `{dplyr}` function calls
 
 ```{r}
 cases %>%
@@ -360,7 +371,7 @@ cases %>%
 
 But I have `demo_sub` hanging around in my environment then (I like to keep my environment clean when possible!).
 
-Option 2: use `rename()` or `select()` on the result of the join:
+**Option 2**: use `rename()` or `select()` on the result of the join:
 
 ```{r}
 cases %>%
@@ -388,36 +399,67 @@ See the Relational Data chapter in the book R for Data Science: <https://r4ds.ha
 
 You now can use different dplyr join commands, such as `inner_join`, `outer_join`, `left_join`, `right_join`, `anti_join`, to join together your data in a wide variety of ways.
 
-Next session: the tidyr functions for reshaping your data to follow the tidy format: `pivot_longer`, `pivot_wider`, `separate` and `separate_rows`
+Next session: the `{tidyr}` functions for reshaping your data to follow the tidy format: `pivot_longer`, `pivot_wider`, `separate` and `separate_rows`
 
 # Answers to the exercises
 
 ### EXERCISE 1
 
 ```{r}
+# View the data in each dataset
+View(bac)
+View(masters)
+View(doc)
 
+# Which columns are common?
+c("school", "year") # set of common columns which together can be used as a Key
 ```
 
 ### EXERCISE 2
 
 ```{r}
+# check column names
+names(cases)
+names(state_stats)
 
+# use appropriate join key syntax
+left_join(cases, state_stats, by=c("state"="State"))
 ```
 
 ### EXERCISE 3
 
 ```{r}
+# check column names
+names(bac)
+names(masters)
+names(doc)
 
+# use appropriate join key syntax
+bac %>% 
+  left_join(masters, by=c("school", "year")) %>% 
+  left_join(doc, by=c("school", "year"))
 ```
 
 ### EXERCISE 4
 
 ```{r}
+# check column names
+names(deaths)
+names(demo)
 
+# use appropriate join key syntax
+anti_join(deaths, demo, by=c("countyFIPS"="fips"))
 ```
 
 ### EXERCISE 5
 
 ```{r}
+# check column names
+names(deaths)
+names(demo)
 
+# left join on deaths to automatically select countyFIPS colum
+deaths %>% 
+  left_join(demo, by=c("countyFIPS"="fips")) %>% 
+  select(state=state.x, deaths, non_white) # rename state column while selecting
 ```
